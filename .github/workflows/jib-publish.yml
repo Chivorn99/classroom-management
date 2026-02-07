@@ -29,6 +29,6 @@ jobs:
       - name: Build and Push Image
         run: |
           mvn compile jib:build \
-            -Djib.to.image=ghcr.io/${{ github.repository_owner }}/classroom-backend:latest \
+            -Djib.to.image=ghcr.io/chivorn99/classroom-backend:latest \
             -Djib.to.auth.username=${{ github.actor }} \
             -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
