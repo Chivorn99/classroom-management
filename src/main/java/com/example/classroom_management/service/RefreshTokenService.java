@@ -6,6 +6,7 @@ import com.example.classroom_management.repository.AppUserRepository;
 import com.example.classroom_management.repository.RefreshTokenRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -19,19 +20,26 @@ public class RefreshTokenService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final AppUserRepository userRepository;
 
+    @Value("${app.jwt.refresh-token-duration-ms:604800000}")
+    private long refreshTokenDurationMs;
+
     @Transactional
     public RefreshToken createRefreshToken(String username) {
+        // Delete any existing refresh token for this user first
+        refreshTokenRepository.findByUser_Username(username)
+            .ifPresent(token -> refreshTokenRepository.delete(token));
+
+        refreshTokenRepository.flush(); // Force the delete to execute NOW
+
         AppUser user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // Delete existing refresh token for this user first
-        refreshTokenRepository.deleteByUser(user);
 
         RefreshToken refreshToken = RefreshToken.builder()
                 .user(user)
                 .token(UUID.randomUUID().toString())
-                .expiryDate(Instant.now().plusSeconds(60 * 60 * 24 * 7)) // 7 days
+                .expiryDate(Instant.now().plusMillis(refreshTokenDurationMs))
                 .build();
+
         return refreshTokenRepository.save(refreshToken);
     }
 
